@@ -1,4 +1,4 @@
-package org.example;
+package org.miditranser;
 
 import mider.utils.Wrap;
 
