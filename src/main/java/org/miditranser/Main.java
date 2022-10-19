@@ -73,6 +73,7 @@ public class Main {
         // play by midercode
         Wrap.play(resMidercode);
     }
+
     private static ArrayList toDeltatime(ArrayList ticks) {
         ArrayList<Object> times = new ArrayList<>();
         for (int i=0;i< ticks.size();i++) {
