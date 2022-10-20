@@ -17,9 +17,10 @@ public class CommonChord extends AbstractChord {
         super(messages);
     }
 
-    private final List<Addable> addables = new ArrayList<>();
-
     public List<Addable> parseMessages(int division) {
+
+        final List<Addable> addables = new ArrayList<>();
+
         var sorted = noteMessages.stream().sorted(
                         Comparator
                                 .comparingLong(i -> ((HasMidiTicks) i).getOrder())
@@ -88,9 +89,8 @@ public class CommonChord extends AbstractChord {
 
             for (var i : items) {
                 if (i instanceof CommonChord) {
-                    addables.addAll(((CommonChord) i).addables);
-//                    ((CommonChord) i).parse2(division);
-//                    addables.addAll(((CommonChord) i).addables);
+                    var la = ((CommonChord) i).parseMessages(division);
+                    addables.addAll(la);
                 } else {
                     addables.add(i);
                 }
@@ -111,5 +111,16 @@ public class CommonChord extends AbstractChord {
     @Override
     public String toString() {
         return this.noteMessages.stream().sorted(Comparator.comparingInt(i->i.getOrder())).collect(Collectors.toList()).toString();
+    }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        List<Addable> list = parseMessages(cdc.division);
+        StringBuilder builder = new StringBuilder();
+        for (var i : list) {
+            var code = i.generateMiderCode(cdc);
+            builder.append(code);
+        }
+        return builder.toString();
     }
 }

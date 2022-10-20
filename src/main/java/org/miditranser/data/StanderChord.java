@@ -4,6 +4,8 @@ import org.miditranser.data.midi.message.NoteMessage;
 
 import java.util.List;
 
+import static org.miditranser.Utils.calculateDuration;
+
 /**
  * closed code size
  * same velocity
@@ -68,5 +70,15 @@ public class StanderChord extends CodePairedChord {
 
     public long getTicks() {
         return offTicks - onTicks;
+    }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        var names = getNoteNames();
+        var symbols = calculateDuration(getTicks(), cdc.division, cdc.accuracy).asMiderDurationSymbols();
+        var root = names.get(0);
+        var restNotes = names.subList(1, names.size());
+        var suffixPart = String.join(":", restNotes);
+        return root + symbols + ":" + suffixPart;
     }
 }

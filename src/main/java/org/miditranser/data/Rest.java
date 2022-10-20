@@ -39,4 +39,10 @@ public class Rest implements Addable {
     public long getTicks() {
         return endTicks - startTicks;
     }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        var symbols = calculateDuration(getTicks(), cdc.division, cdc.accuracy).asMiderDurationSymbols();
+        return "o" + symbols;
+    }
 }

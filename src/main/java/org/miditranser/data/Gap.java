@@ -21,13 +21,6 @@ public class Gap implements Addable {
         this.ticks = ticks;
     }
 
-    public String getInMiderCodeForm(int division) {
-        if (symbols != null) {
-            return "";
-        }
-        return "";
-    }
-
     @Override
     public String toString() {
         String v = "none";
@@ -36,7 +29,6 @@ public class Gap implements Addable {
 
         return "{mark gap=" + v + "}";
     }
-
 
     @Override
     public boolean equals(Object o) {
@@ -58,5 +50,10 @@ public class Gap implements Addable {
 
     public static Gap ClearGap() {
         return new Gap("default");
+    }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        return toString();
     }
 }

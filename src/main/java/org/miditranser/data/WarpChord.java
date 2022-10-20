@@ -68,5 +68,8 @@ public class WarpChord extends AbstractChord {
         NotePiece tail = new NotePiece(beCutTail);
     }
 
-
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        return null;
+    }
 }
