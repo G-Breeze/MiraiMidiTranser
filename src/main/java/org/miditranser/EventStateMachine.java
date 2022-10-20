@@ -1,13 +1,7 @@
 package org.miditranser;
 
-import org.miditranser.data.Addable;
-import org.miditranser.data.Controller;
-import org.miditranser.data.NoneOccupyTicksContainer;
-import org.miditranser.data.ProgramChange;
-import org.miditranser.data.midi.message.ControllerMessage;
-import org.miditranser.data.midi.message.HasMidiTicks;
-import org.miditranser.data.midi.message.NoteMessage;
-import org.miditranser.data.midi.message.ProgramChangeMessage;
+import org.miditranser.data.*;
+import org.miditranser.data.midi.message.*;
 import org.miditranser.handle.AbstractHandler;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,17 +19,17 @@ public class EventStateMachine {
         this.mtw = mtw;
     }
 
-    public EventStateMachine(int division) {
-        this(new MiderTrackWriter(division));
+    public EventStateMachine(CalculateDurationConfiguration cdc) {
+        this(new MiderTrackWriter(cdc));
     }
 
-    public List<List<? extends HasMidiTicks>> getFirstIterationStack() {
+    private List<List<? extends HasMidiTicks>> getFirstIterationStack() {
         return firstIterationStack;
     }
 
     private int counter;
 
-    public void stackHandleMessageSettingOder(AbstractHandler handler) {
+    public void initHandlerStackSettingOder(AbstractHandler handler) {
         handler.handleNoteOn(msg -> {
             msg.setOrder(counter ++);
             messageStack.push(msg);
@@ -54,14 +48,15 @@ public class EventStateMachine {
             list.add(msg);
             firstIterationStack.add(list);
         }).handleMeta(meta -> {
-            if (meta.getType() == 0x51)
-                mtw.setBpm(tempo2bpm(byteArrayToInt(meta.getData())));
+            firstIterationStack.add(new NoneOccupyTicksContainer(meta));
         }).handleProgramChange(msg -> {
+            firstIterationStack.add(new NoneOccupyTicksContainer(msg));
+        }).handleController(msg->{
             firstIterationStack.add(new NoneOccupyTicksContainer(msg));
         });
     }
 
-    public void stackHandleMessage(AbstractHandler handler) {
+    public void initHandlerStack(AbstractHandler handler) {
         handler.handleNoteOn(messageStack::push).handleNoteOff(msg -> {
 
             bufferIterationList.add(messageStack.pop());
@@ -76,9 +71,12 @@ public class EventStateMachine {
             list.add(msg);
             firstIterationStack.add(list);
         }).handleMeta(meta -> {
-            if (meta.getType() == 0x51)
+            if (meta.getType() == 0x51) {
                 mtw.setBpm(tempo2bpm(byteArrayToInt(meta.getData())));
+            }
         }).handleProgramChange(msg -> {
+            firstIterationStack.add(new NoneOccupyTicksContainer(msg));
+        }).handleController(msg->{
             firstIterationStack.add(new NoneOccupyTicksContainer(msg));
         });
     }
@@ -87,7 +85,7 @@ public class EventStateMachine {
         return firstIterationStack.size() != 0;
     }
 
-    public void gen() {
+    public void generateList() {
         for (var events : firstIterationStack) {
             if (events instanceof NoneOccupyTicksContainer) {
                 HasMidiTicks message = ((NoneOccupyTicksContainer) events).getMessage();
@@ -96,6 +94,8 @@ public class EventStateMachine {
                     mtw.addNoneSound(new ProgramChange(((ProgramChangeMessage) message)));
                 } else if (message instanceof ControllerMessage) {
                     mtw.addNoneSound(new Controller(((ControllerMessage) message)));
+                } else if (message instanceof MetaMessage) {
+                    mtw.addNoneSound(new Meta(((MetaMessage) message)));
                 }
 
             } else mtw.addSound(((List<NoteMessage>) events));

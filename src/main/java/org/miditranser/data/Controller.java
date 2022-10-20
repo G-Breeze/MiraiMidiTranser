@@ -20,7 +20,7 @@ public class Controller implements Addable {
 
     @Override
     public String generateMiderCode(CalculateDurationConfiguration cdc) {
-        return null;
+        return "{c" + channel + "=" + number + "," + parameter + "}";
     }
 
 

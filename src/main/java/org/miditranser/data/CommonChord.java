@@ -1,6 +1,7 @@
 package org.miditranser.data;
 
 import org.miditranser.EventStateMachine;
+import org.miditranser.MiderTrackOptimizer;
 import org.miditranser.Utils;
 import org.miditranser.data.midi.message.HasMidiTicks;
 import org.miditranser.data.midi.message.NoteMessage;
@@ -17,7 +18,7 @@ public class CommonChord extends AbstractChord {
         super(messages);
     }
 
-    public List<Addable> parseMessages(int division) {
+    public List<Addable> parseMessages(CalculateDurationConfiguration cdc) {
 
         final List<Addable> addables = new ArrayList<>();
 
@@ -58,7 +59,7 @@ public class CommonChord extends AbstractChord {
             part1.remove(beCutHead);
             part2.remove(beCutTail);
 
-            EventStateMachine esm = new EventStateMachine(division);
+            EventStateMachine esm = new EventStateMachine(cdc);
 
             NotePiece head = new NotePiece(beCutHead);
             addables.add(head);
@@ -75,11 +76,11 @@ public class CommonChord extends AbstractChord {
 
             for (var msg : cut) {
                 MessageHandler handler = new MessageHandler(msg);
-                esm.stackHandleMessage(handler);
+                esm.initHandlerStack(handler);
                 handler.handle();
             }
 
-            esm.gen();
+            esm.generateList();
 
             NotePiece tail = new NotePiece(beCutTail);
             tail.setLastingTick(tail.getHeadTicks() - cut.get(cut.size() - 1).getMarkTicks());
@@ -89,7 +90,7 @@ public class CommonChord extends AbstractChord {
 
             for (var i : items) {
                 if (i instanceof CommonChord) {
-                    var la = ((CommonChord) i).parseMessages(division);
+                    var la = ((CommonChord) i).parseMessages(cdc);
                     addables.addAll(la);
                 } else {
                     addables.add(i);
@@ -115,9 +116,12 @@ public class CommonChord extends AbstractChord {
 
     @Override
     public String generateMiderCode(CalculateDurationConfiguration cdc) {
-        List<Addable> list = parseMessages(cdc.division);
+        List<Addable> list = parseMessages(cdc);
         StringBuilder builder = new StringBuilder();
-        for (var i : list) {
+
+        List<Addable> withRestOrGap = MiderTrackOptimizer.addRestOrGapForChord(list, cdc);
+
+        for (var i : withRestOrGap) {
             var code = i.generateMiderCode(cdc);
             builder.append(code);
         }

@@ -18,6 +18,10 @@ public class ProgramChange implements Addable {
 
     @Override
     public String generateMiderCode(CalculateDurationConfiguration cdc) {
-        return "{i" + channel + "=" + instrument + "}";
+
+        int code;
+        if (instrument > 0) code = instrument;
+        else code = -instrument + 1;
+        return "{i" + channel + "=" + code + "}";
     }
 }

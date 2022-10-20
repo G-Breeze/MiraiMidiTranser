@@ -7,7 +7,7 @@ public class ControllerMessage extends HasMidiTicks {
         return channel;
     }
 
-    private byte channel;
+    private final byte channel;
 
     public byte getNumber() {
         return number;

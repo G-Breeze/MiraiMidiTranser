@@ -10,16 +10,19 @@ import java.util.List;
 import java.util.Stack;
 import java.util.stream.Collectors;
 
+import static org.miditranser.MiderTrackOptimizer.withRestOrGap;
+
 public class MiderTrackWriter {
 
-    private final int division;
+    private final CalculateDurationConfiguration cdc;
+
     public static final int defaultBpm = 80;
     private boolean addRestAndGap = true;
-    int bpm;
+    static int bpm;
     private final List<Addable> items = new ArrayList<>();
 
-    MiderTrackWriter(int division) {
-        this.division = division;
+    MiderTrackWriter(CalculateDurationConfiguration cdc) {
+        this.cdc = cdc;
     }
 
     public boolean isAddRestAndGap() {
@@ -35,7 +38,7 @@ public class MiderTrackWriter {
     }
 
     public void setBpm(int bpm) {
-        this.bpm = bpm;
+        MiderTrackWriter.bpm = bpm;
     }
 
     private void addStanderNote(NoteMessage on, NoteMessage off) {
@@ -138,88 +141,22 @@ public class MiderTrackWriter {
         return false;
     }
 
-    public List<Addable> withRestOrGap(List<Addable> items) {
-
-//        System.out.println("wro" + items);
-
-        FromMidiEvent previous = null;
-        long previousGap = 0;
-        Stack<Gap> gapStack = new Stack<>();
-        var retList = new ArrayList<Addable>();
-        // options
-        var useGap = !true;
-        var onlyClearOnce = true;
-        var gapUseDurationSymbolsForm = false;
-        var autoClose = false;
-
-
-        for (Addable item : items) {
-
-            if (!(item instanceof FromMidiEvent)) {
-                retList.add(item);
-                continue;
-                // todo optimize
-            }
-
-            var current = (FromMidiEvent) item;
-
-            if (previous != null) {
-                // case index >= 1
-                var gap = current.getHeadTicks() - previous.getTailTicks();
-                if (gap != 0) {
-                    // contains gap that need to be fulfilled with rest or gap pair
-                    var rest = new Rest(previous.getTailTicks(), current.getHeadTicks());
-                    if (useGap && rest.shouldUseGap(division)) {
-
-                        if (gap != previousGap) {
-                            // gap value changed
-                            var gapPair = rest.toGapPair(gapUseDurationSymbolsForm);
-                            gapStack.push(gapPair.getValue());
-                            retList.add(gapPair.getKey());
-                        }
-                    } else {
-                        if (autoClose) while (!gapStack.isEmpty()) {
-                            retList.add(gapStack.pop());
-                            if (onlyClearOnce) gapStack.clear();
-                        }
-                        retList.add(rest);
-                    }
-                } else {
-                    // clear gap
-                    if (autoClose) while (useGap && !gapStack.isEmpty()) {
-                        retList.add(gapStack.pop());
-                        if (onlyClearOnce) gapStack.clear();
-                    }
-                }
-                previousGap = gap;
-            } else if (current.getHeadTicks() != 0) {
-                // case index = 0
-                var rest = new Rest(0, current.getHeadTicks());
-                retList.add(rest);
-            }
-
-            previous = current;
-            retList.add(item);
-        }
-
-        if (autoClose && !gapStack.isEmpty()) retList.add(Gap.ClearGap());
-        return retList;
-    }
-
     public List<Addable> getOptimizedList() {
         if (isAddRestAndGap())
-            return withRestOrGap(items);
+            return withRestOrGap(items, cdc);
         else return items;
     }
 
     public String generateTrackMiderCode() {
-        var cdc = new CalculateDurationConfiguration();
         StringBuilder builder = new StringBuilder();
-        cdc.setAccuracy(0.1);
-        cdc.setDivision(division);
 
         for (var item : getOptimizedList()) {
             String code = item.generateMiderCode(cdc);
+            if (item instanceof Meta) {
+                if (((Meta) item).isChangBpm()) {
+                    setBpm(Meta.bytesToBpm(((Meta) item).getData()));
+                }
+            }
             builder.append(code).append(" ");
         }
 
@@ -293,12 +230,15 @@ public class MiderTrackWriter {
     public String generateTrackCodeWithConfig() {
 
         StringBuilder builder = new StringBuilder();
+        String code = generateTrackMiderCode();
+        if (code.isBlank()) return "";
 
-        if (bpm == defaultBpm || bpm == 0)
+        if (bpm == defaultBpm || bpm == 0) {
             builder.append(">g>");
+        }
         else builder.append(">").append(bpm).append("b>");
 
-        return builder.append(generateTrackMiderCode()).toString();
+        return builder.append(code).toString();
     }
 
     @Override
