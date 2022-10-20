@@ -2,7 +2,7 @@ package org.miditranser.data;
 
 import org.miditranser.data.midi.message.NoteMessage;
 
-public class NotePiece extends HasNoteCode implements MidiHexData {
+public class NotePiece extends HasNoteCode implements MidiHexData, FromMidiEvent {
     int type;
     int velocity;
     byte channel;

@@ -45,7 +45,7 @@ public class MiderCodeTransfer {
 //                esm.handleMessage(status, rest(data), deltaTime);
 
                 var handler = new StatusHandler(status, data, deltaTime, event.getTick());
-                esm.stackHandleMessage(handler);
+                esm.stackHandleMessageSettingOder(handler);
                 handler.handle();
 
 //                System.out.print("time: " + deltaTime + ", " + status + ", ");
@@ -59,7 +59,7 @@ public class MiderCodeTransfer {
                 esm.gen();
                 // String code = esm.getMiderTrackWriter().getTrackCode();
 //                System.out.println(code);
-                miderCode.add(esm.getMiderTrackWriter().getTrackCode());
+                miderCode.add(esm.getMiderTrackWriter().getTrackCodeWithConfig());
             }
 
         }

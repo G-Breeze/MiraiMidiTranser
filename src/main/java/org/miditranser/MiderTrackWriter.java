@@ -19,15 +19,15 @@ public class MiderTrackWriter {
     private final int division;
     public static final int defaultBpm = 80;
 
-    public boolean isAddRestOrGap() {
-        return addRestOrGap;
+    public boolean isAddRestAndGap() {
+        return addRestAndGap;
     }
 
-    public void setAddRestOrGap(boolean addRestOrGap) {
-        this.addRestOrGap = addRestOrGap;
+    public void setAddRestAndGap(boolean addRestAndGap) {
+        this.addRestAndGap = addRestAndGap;
     }
 
-    private boolean addRestOrGap = true;
+    private boolean addRestAndGap = true;
 
     MiderTrackWriter(int division) {
         this.division = division;
@@ -42,13 +42,17 @@ public class MiderTrackWriter {
      */
     private final List<Triple<Byte, DurationTag, Byte>> noteList = new ArrayList<>();
 
+    public List<Addable> getItems() {
+        return items;
+    }
+
     private final List<Addable> items = new ArrayList<>();
 
     public void setBpm(int bpm) {
         this.bpm = bpm;
     }
 
-    public void addCombinedNote(NoteMessage on, NoteMessage off) {
+    private void addStanderNote(NoteMessage on, NoteMessage off) {
 
         CheckEventResult result = checkNote(on, off);
         if (!result.isNoteClosed())
@@ -141,6 +145,20 @@ public class MiderTrackWriter {
         }
     }
 
+    public void addNotePiece(NotePiece np) {
+        items.add(np);
+    }
+
+    public void addSound(List<NoteMessage> messages) {
+        if (messages.size() == 2) {
+            // might note
+            addStanderNote(messages.get(0), messages.get(1));
+        } else if (messages.size() >= 4) {
+            // might chord
+            addChord(messages);
+        }
+    }
+
     public void addChord(List<NoteMessage> messages) {
 
         List<NoteMessage> onMessages = messages.stream().filter(NoteMessage::isNoteOn).collect(Collectors.toList());
@@ -166,6 +184,7 @@ public class MiderTrackWriter {
 //            );
             items.add(new StanderChord(messages));
         } else if (true) {
+
             items.add(new CommonChord(messages));
         }  if (isArpeggio(result)) {
 //            System.out.println("Arpeggio chord");
@@ -175,7 +194,22 @@ public class MiderTrackWriter {
 
         // } else if (result.isChordEndTicksSameFlag()) {
             // end ticks are same
-        /*}*/ else {
+        /*}*/
+
+
+
+
+
+
+
+        /*else */
+
+
+
+
+        if (false) {
+
+
 //            System.out.print("inner chord: " + messages);
 //            System.out.println();
 //
@@ -194,10 +228,10 @@ public class MiderTrackWriter {
             var part1 = sortedMessages.subList(0, sortedMessages.size() / 2);
             var part2 = sortedMessages.subList(sortedMessages.size() / 2, sortedMessages.size());
 
-            var eqp1 = Utils.getSameHeadElement(part1, HasMidiTicks::getMarkTicks); //getSameHeadElement(part1);
+            var eqp1 = getSameHeadElement(part1); // Utils.getSameHeadElement(part1, HasMidiTicks::getMarkTicks); //getSameHeadElement(part1);
             var copyPart2 = new ArrayList<>(part2);
             Collections.reverse(copyPart2);
-            var eqp2 = Utils.getSameHeadElement(part2, HasMidiTicks::getMarkTicks); // getSameHeadElement(copyPart2);
+            var eqp2 = getSameHeadElement(copyPart2); // Utils.getSameHeadElement(part2, HasMidiTicks::getMarkTicks); //
 
             NoteMessage headMessage = null;
             NoteMessage tailMessage = null;
@@ -417,8 +451,10 @@ public class MiderTrackWriter {
 
     public List<Addable> getOptimizedList() {
 //        var nl = ;
-         return withRestOrGap(items);//removeRestAndGapInsideNotePiece();
+        if (isAddRestAndGap())
+            return withRestOrGap(items);//removeRestAndGapInsideNotePiece();
 //        return nl;
+        else return items;
     }
 
     public void addRest() {
@@ -449,10 +485,6 @@ public class MiderTrackWriter {
         // todo remove to FromMidiEvents
 
         var accuracy = 0.1;
-
-        if (bpm == defaultBpm || bpm == 0)
-            builder.append(">g>");
-        else builder.append(">").append(bpm).append("b>");
 
         var list = getOptimizedList();
 //        removeRestAndGapInsideNotePiece(items);
@@ -488,11 +520,37 @@ public class MiderTrackWriter {
 //                    builder.append(((NotePiece) item).getLastingTick());
                     builder.append(",0");
                 builder.append("}");
+            } else if (item instanceof CommonChord) {
+
+                builder.append("<");
+                builder.append(((CommonChord) item).parse2(division));
+                builder.append(">");
+//                System.out.println("code > " + ((CommonChord) item).parse2(division));
+//                ((CommonChord) item).parse();
+            } else if (item instanceof AbstractChord) {
+                builder.append(((AbstractChord) item).getOnCodes());
+                builder.append("%");
+                builder.append(((AbstractChord) item).getOnsTicks());
+                builder.append(" & ");
+                builder.append(((AbstractChord) item).getOffCodes());
+                builder.append("%");
+                builder.append(((AbstractChord) item).getOffsTicks());
             }
             builder.append(" ");
         }
 
         return builder.toString().trim();
+    }
+
+    public String getTrackCodeWithConfig() {
+
+        StringBuilder builder = new StringBuilder();
+
+        if (bpm == defaultBpm || bpm == 0)
+            builder.append(">g>");
+        else builder.append(">").append(bpm).append("b>");
+
+        return builder.append(getTrackCode()).toString();
     }
 
     @Override

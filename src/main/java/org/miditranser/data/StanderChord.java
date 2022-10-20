@@ -1,12 +1,8 @@
 package org.miditranser.data;
 
 import org.miditranser.data.midi.message.NoteMessage;
-import org.miditranser.data.midi.message.NoteOffMessage;
-import org.miditranser.data.midi.message.NoteOnMessage;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * closed code size
@@ -33,7 +29,13 @@ public class StanderChord extends CodePairedChord {
         channel = getOffChannels().get(0);
     }
 
-//    public StanderChord(List<Byte> codes, byte onVelocity, byte offVelocity, byte channel, long onTicks, long offTicks) {
+    @Override
+    public String toString() {
+        return String.join(":", getNoteNames());
+    }
+
+
+    //    public StanderChord(List<Byte> codes, byte onVelocity, byte offVelocity, byte channel, long onTicks, long offTicks) {
 //        super();
 //
 //        super(

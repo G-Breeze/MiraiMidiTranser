@@ -2,7 +2,11 @@ package org.miditranser.data;
 
 import org.miditranser.Utils;
 
-public abstract class HasNoteCode implements FromMidiEvent {
+public abstract class HasNoteCode {
+    public byte getCode() {
+        return code;
+    }
+
     byte code;
 
     HasNoteCode(byte code) {

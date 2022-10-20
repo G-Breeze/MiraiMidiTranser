@@ -101,6 +101,28 @@ abstract public class NoteMessage extends HasMidiTicks {
         return msg.getCode() == getCode();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        NoteMessage that = (NoteMessage) o;
+
+        if (code != that.code) return false;
+        if (velocity != that.velocity) return false;
+        if (operatorCode != that.operatorCode) return false;
+        return channel == that.channel;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = code;
+        result = 31 * result + (int) velocity;
+        result = 31 * result + (int) operatorCode;
+        result = 31 * result + (int) channel;
+        return result;
+    }
+
     public NoteMessage(byte code, byte velocity, byte channel, long deltaTime, long markedTicks) {
         this.code = code;
         this.velocity = velocity;

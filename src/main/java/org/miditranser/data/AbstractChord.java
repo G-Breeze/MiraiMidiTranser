@@ -115,7 +115,7 @@ public abstract class AbstractChord implements Chord {
 
     @Override
     public String toString() {
-        return "StanderChord{" +
+        return "AbstractChord{" +
                 "onCodes=" + getOnCodes() +
                 ", offCodes=" + getOffCodes() +
                 ", onVelocities=" + getOnVelocities() +

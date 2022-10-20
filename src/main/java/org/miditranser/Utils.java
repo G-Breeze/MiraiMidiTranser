@@ -1,14 +1,14 @@
 package org.miditranser;
 
+import org.miditranser.data.HasNoteCode;
 import org.miditranser.data.duration.DurationTag;
 import org.miditranser.data.midi.message.HasMidiTicks;
 import org.miditranser.data.midi.message.NoteMessage;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.miditranser.Constance.*;
 
@@ -418,15 +418,34 @@ public class Utils {
 
     }
 
+    public static Stream<? extends HasMidiTicks> sortedByMarkTicksStream(List<? extends HasMidiTicks> provide) {
+        return provide.stream()
+                .sorted(Comparator.comparingLong(HasMidiTicks::getMarkTicks));
+    }
+
+    public static Stream<? extends HasNoteCode> sortedByCodeStream(List<? extends HasNoteCode> provide) {
+        return provide.stream()
+                .sorted(Comparator.comparingLong(HasNoteCode::getCode));
+    }
+
     public  static <T> List<? extends T> getSameHeadElement(List<? extends T> list, Function<T, Object> getValue) {
         ArrayList<T> retElement = new ArrayList<>();
 //        long value = list.get(0).getMarkTicks();
         Object value = getValue.apply(list.get(0)); //list.get(0).getMarkTicks();
         for(var i : list) {
-            if (getValue.apply(i) == value) {
+            if (getValue.apply(i).equals(value)) {
                 retElement.add(i);
             } else break;
         }
         return retElement;
+    }
+
+    public static <R> R apply(R ref, Consumer<R> action) {
+        action.accept(ref);
+        return ref;
+    }
+
+    public static <T, R> R let(T ref, Function<T, R> action) {
+        return action.apply(ref);
     }
 }

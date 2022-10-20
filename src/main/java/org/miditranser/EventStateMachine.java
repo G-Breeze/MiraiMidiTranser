@@ -190,6 +190,36 @@ public class EventStateMachine {
     private final List<List<? extends HasMidiTicks>> firstIterationStack = new ArrayList<>();
     private final List<NoteMessage> bufferIterationList = new ArrayList<>();
 
+
+    private int counter;
+
+
+    public void stackHandleMessageSettingOder(AbstractHandler handler) {
+        handler.handleNoteOn(msg->{
+            msg.setOrder(counter ++);
+            messageStack.push(msg);
+        }).handleNoteOff(msg -> {
+
+            msg.setOrder(counter ++);
+            bufferIterationList.add(messageStack.pop());
+            bufferIterationList.add(msg);
+
+            if (messageStack.isEmpty()) {
+                firstIterationStack.add(new ArrayList<>(bufferIterationList));
+                bufferIterationList.clear();
+            }
+        }).handleAfterTouch(msg -> {
+            var list = new ArrayList<NoteMessage>();
+            list.add(msg);
+            firstIterationStack.add(list);
+        }).handleMeta(meta -> {
+            if (meta.getType() == 0x51)
+                mtw.setBpm(tempo2bpm(byteArrayToInt(meta.getData())));
+        }).handleProgramChange(msg -> {
+            firstIterationStack.add(new NoneOccupyTicksContainer(msg));
+        });
+    }
+
     public void stackHandleMessage(AbstractHandler handler) {
         handler.handleNoteOn(messageStack::push).handleNoteOff(msg -> {
 
@@ -238,25 +268,27 @@ public class EventStateMachine {
                     ((ProgramChangeMessage) message).getInstrument();
                 }
             } else {
-                var occupyTicks = ((List<? extends NoteMessage>) events);
-                if (occupyTicks.size() == 2) {
-                    // paired
-                    mtw.addCombinedNote(occupyTicks.get(0), occupyTicks.get(1));
-                } else if (events.size() > 2) {
-
-                    mtw.addChord((List<NoteMessage>) occupyTicks);
-
-//                    var r = MiderTrackWriter.checkChord(
-//                            occupyTicks.stream().filter(NoteMessage::isNoteOn).collect(Collectors.toList()),
-//                            occupyTicks.stream().filter(NoteMessage::isNoteOff).collect(Collectors.toList())
-//                    );
+//                var occupyTicks = ((List<? extends NoteMessage>) events);
+                mtw.addSound(((List<NoteMessage>) events));
 //
-//                    if (MiderTrackWriter.isStanderChord(r)) {
-//                        mtw.addCombinedChord(
-//                                occupyTicks.stream().filter(NoteMessage::isNoteOn).collect(Collectors.toList()),
-//                                occupyTicks.stream().filter(NoteMessage::isNoteOff).collect(Collectors.toList()));
-//                    }
-                }
+//                if (occupyTicks.size() == 2) {
+//                    // paired
+//                    // mtw.addCombinedNote(occupyTicks.get(0), occupyTicks.get(1));
+//                } else if (events.size() > 2) {
+//
+//                    // mtw.addChord((List<NoteMessage>) occupyTicks);
+//
+////                    var r = MiderTrackWriter.checkChord(
+////                            occupyTicks.stream().filter(NoteMessage::isNoteOn).collect(Collectors.toList()),
+////                            occupyTicks.stream().filter(NoteMessage::isNoteOff).collect(Collectors.toList())
+////                    );
+////
+////                    if (MiderTrackWriter.isStanderChord(r)) {
+////                        mtw.addCombinedChord(
+////                                occupyTicks.stream().filter(NoteMessage::isNoteOn).collect(Collectors.toList()),
+////                                occupyTicks.stream().filter(NoteMessage::isNoteOff).collect(Collectors.toList()));
+////                    }
+//                }
             }
 
         }
