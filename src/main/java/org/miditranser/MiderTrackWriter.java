@@ -2,6 +2,7 @@ package org.miditranser;
 
 import kotlin.Triple;
 import org.miditranser.data.*;
+import org.miditranser.data.duration.DurationTag;
 import org.miditranser.data.midi.message.HasMidiTicks;
 import org.miditranser.data.midi.message.NoteMessage;
 import org.miditranser.handle.MessageHandler;
@@ -130,10 +131,10 @@ public class MiderTrackWriter {
 
         if (isStanderChord(result)) {
             // stander chord
-            StanderChord chord = new StanderChord(
-                    ons.stream().map(NoteMessage::asOn).collect(Collectors.toList()),
-                    offs.stream().map(NoteMessage::asOff).collect(Collectors.toList()));
-            items.add(chord);
+//            StanderChord chord = new StanderChord(
+//                    ons.stream().map(NoteMessage::asOn).collect(Collectors.toList()),
+//                    offs.stream().map(NoteMessage::asOff).collect(Collectors.toList()));
+//            items.add(new StanderChord());
 
         } else {
             /// System.out.println("none stander");
@@ -155,15 +156,18 @@ public class MiderTrackWriter {
 
         if (isStanderChord(result)) {
 //            System.out.println("stander chord");
-            items.add(new StanderChord(
-                    onMessages.stream()
-                            .map(NoteMessage::asOn)
-                            .collect(Collectors.toList()),
-                    offMessages.stream()
-                            .map(NoteMessage::asOff)
-                            .collect(Collectors.toList()))
-            );
-        } else if (isArpeggio(result)) {
+//            items.add(new StanderChord(
+//                    onMessages.stream()
+//                            .map(NoteMessage::asOn)
+//                            .collect(Collectors.toList()),
+//                    offMessages.stream()
+//                            .map(NoteMessage::asOff)
+//                            .collect(Collectors.toList()))
+//            );
+            items.add(new StanderChord(messages));
+        } else if (true) {
+            items.add(new CommonChord(messages));
+        }  if (isArpeggio(result)) {
 //            System.out.println("Arpeggio chord");
         } // else if (result.isChordStartTicksSameFlag()) {
             // start ticks are same
@@ -190,10 +194,10 @@ public class MiderTrackWriter {
             var part1 = sortedMessages.subList(0, sortedMessages.size() / 2);
             var part2 = sortedMessages.subList(sortedMessages.size() / 2, sortedMessages.size());
 
-            var eqp1 = getSameHeadElement(part1);
+            var eqp1 = Utils.getSameHeadElement(part1, HasMidiTicks::getMarkTicks); //getSameHeadElement(part1);
             var copyPart2 = new ArrayList<>(part2);
             Collections.reverse(copyPart2);
-            var eqp2 = getSameHeadElement(copyPart2);
+            var eqp2 = Utils.getSameHeadElement(part2, HasMidiTicks::getMarkTicks); // getSameHeadElement(copyPart2);
 
             NoteMessage headMessage = null;
             NoteMessage tailMessage = null;

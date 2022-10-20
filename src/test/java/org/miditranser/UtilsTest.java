@@ -2,10 +2,7 @@ package org.miditranser;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.miditranser.data.DurationTag;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.miditranser.Utils.*;
+import org.miditranser.data.duration.DurationTag;
 
 class UtilsTest {
 

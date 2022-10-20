@@ -1,4 +1,4 @@
-package org.miditranser.data;
+package org.miditranser.data.duration;
 
 import java.util.Arrays;
 

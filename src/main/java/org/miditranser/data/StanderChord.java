@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * same startTicks
  * same endTicks
  */
-public class StanderChord extends Chord {
+public class StanderChord extends CodePairedChord {
 
     byte onVelocity;
     byte offVelocity;
@@ -23,47 +23,48 @@ public class StanderChord extends Chord {
     long onTicks;
     long offTicks;
 
-    public StanderChord(List<Byte> codes, byte onVelocity, byte offVelocity, byte channel, long onTicks, long offTicks) {
-        super(
-                codes,
-                coordinate(onVelocity, codes.size()),
-                coordinate(offVelocity, codes.size()),
-                coordinate(channel, codes.size()),
-                coordinate(channel, codes.size()),
-                coordinate(onTicks, codes.size()),
-                coordinate(offTicks, codes.size()));
+    public StanderChord(List<? extends NoteMessage> noteMessages) {
+        super(noteMessages);
 
-        this.onVelocity = onVelocity;
-        this.offVelocity = offVelocity;
-        this.channel = channel;
-        this.onTicks = onTicks;
-        this.offTicks = offTicks;
+        onTicks = getOnsTicks().get(0);
+        offTicks = getOffsTicks().get(0);
+        onVelocity = getOnChannels().get(0);
+        offVelocity = getOffVelocities().get(0);
+        channel = getOffChannels().get(0);
     }
 
-    public StanderChord(List<NoteOnMessage> ons, List<NoteOffMessage> offs) {
-        this(
-                ons.stream().map(NoteOnMessage::getCode).collect(Collectors.toList()),
-                ons.get(0).getVelocity(),
-                offs.get(0).getVelocity(),
-                ons.get(0).getChannel(),
-                ons.get(0).getMarkTicks(),
-                offs.get(0).getMarkTicks());
-    }
+//    public StanderChord(List<Byte> codes, byte onVelocity, byte offVelocity, byte channel, long onTicks, long offTicks) {
+//        super();
+//
+//        super(
+//                codes,
+//                coordinate(onVelocity, codes.size()),
+//                coordinate(offVelocity, codes.size()),
+//                coordinate(channel, codes.size()),
+//                coordinate(channel, codes.size()),
+//                coordinate(onTicks, codes.size()),
+//                coordinate(offTicks, codes.size()));
+//
+//
+//
+//        this.onVelocity = onVelocity;
+//        this.offVelocity = offVelocity;
+//        this.channel = channel;
+//        this.onTicks = onTicks;
+//        this.offTicks = offTicks;
+//    }
+
+//    public StanderChord(List<NoteOnMessage> ons, List<NoteOffMessage> offs) {
+//        this(
+//                ons.stream().map(NoteOnMessage::getCode).collect(Collectors.toList()),
+//                ons.get(0).getVelocity(),
+//                offs.get(0).getVelocity(),
+//                ons.get(0).getChannel(),
+//                ons.get(0).getMarkTicks(),
+//                offs.get(0).getMarkTicks());
+//    }
 
     public long getTicks() {
         return offTicks - onTicks;
-    }
-
-    @Override
-    public String toString() {
-        return "StanderChord{" +
-                "codes=" + codes +
-                ", onVelocities=" + onVelocities +
-                ", offVelocities=" + offVelocities +
-                ", onChannels=" + onChannels +
-                ", offChannels=" + offChannels +
-                ", onTicks=" + onTicks +
-                ", offTicks=" + offTicks +
-                '}';
     }
 }
