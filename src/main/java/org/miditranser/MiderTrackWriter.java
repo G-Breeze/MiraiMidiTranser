@@ -523,7 +523,7 @@ public class MiderTrackWriter {
             } else if (item instanceof CommonChord) {
 
                 builder.append("<");
-                builder.append(((CommonChord) item).parse2(division));
+                builder.append(((CommonChord) item).parseMessages(division));
                 builder.append(">");
 //                System.out.println("code > " + ((CommonChord) item).parse2(division));
 //                ((CommonChord) item).parse();
@@ -535,6 +535,8 @@ public class MiderTrackWriter {
                 builder.append(((AbstractChord) item).getOffCodes());
                 builder.append("%");
                 builder.append(((AbstractChord) item).getOffsTicks());
+            } else {
+                System.out.println("not in");
             }
             builder.append(" ");
         }

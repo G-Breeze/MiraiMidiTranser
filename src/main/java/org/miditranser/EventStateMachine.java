@@ -195,7 +195,7 @@ public class EventStateMachine {
 
 
     public void stackHandleMessageSettingOder(AbstractHandler handler) {
-        handler.handleNoteOn(msg->{
+        handler.handleNoteOn(msg -> {
             msg.setOrder(counter ++);
             messageStack.push(msg);
         }).handleNoteOff(msg -> {

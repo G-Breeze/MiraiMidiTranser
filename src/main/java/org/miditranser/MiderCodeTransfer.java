@@ -1,5 +1,6 @@
 package org.miditranser;
 
+import org.miditranser.data.midi.message.HasMidiTicks;
 import org.miditranser.handle.StatusHandler;
 
 import javax.sound.midi.InvalidMidiDataException;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static org.miditranser.Utils.rest;
@@ -57,6 +59,7 @@ public class MiderCodeTransfer {
             if (esm.hasNote()) {
 //                esm.test();
                 esm.gen();
+
                 // String code = esm.getMiderTrackWriter().getTrackCode();
 //                System.out.println(code);
                 miderCode.add(esm.getMiderTrackWriter().getTrackCodeWithConfig());
