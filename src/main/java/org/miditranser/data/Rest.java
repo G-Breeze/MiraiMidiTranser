@@ -23,8 +23,8 @@ public class Rest implements Addable {
         return Map.entry(new Gap(getTicks()), Gap.ClearGap());
     }
 
-    public boolean shouldUseGap(int division) {
-        return getTicks() <= 48 || getDurationSymbols(division).length() > 5;
+    public boolean shouldUseGap(CalculateDurationConfiguration cdc) {
+        return getTicks() <= 48 || getDurationSymbols(cdc.division).length() > 5;
     }
 
     public String getDurationSymbols(int division) {
@@ -38,5 +38,11 @@ public class Rest implements Addable {
 
     public long getTicks() {
         return endTicks - startTicks;
+    }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        var symbols = calculateDuration(getTicks(), cdc.division, cdc.accuracy).asMiderDurationSymbols();
+        return "o" + symbols;
     }
 }

@@ -1,9 +1,14 @@
 package org.miditranser;
 
-import org.miditranser.data.DurationTag;
+import org.miditranser.data.HasNoteCode;
+import org.miditranser.data.duration.DurationTag;
+import org.miditranser.data.midi.message.HasMidiTicks;
+import org.miditranser.data.midi.message.NoteMessage;
 
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.miditranser.Constance.*;
 
@@ -321,25 +326,25 @@ public class Utils {
         if (noteOffset == 0) {
             name = "c";
         } else if (noteOffset == 1) {
-            if (front) name = "#c"; else name = "c'";
+            if (front) name = "#c"; else name = "c\"";
         } else if (noteOffset == 2) {
             name = "d";
         } else if (noteOffset == 3) {
-            if (front) name = "#d"; else name = "d'";
+            if (front) name = "#d"; else name = "d\"";
         } else if (noteOffset == 4) {
             name = "e";
         } else if (noteOffset == 5) {
             name = "f";
         } else if (noteOffset == 6) {
-            if (front) name = "#f"; else name = "f'";
+            if (front) name = "#f"; else name = "f\"";
         } else if (noteOffset == 7) {
             name = "g";
         } else if (noteOffset == 8) {
-            if (front) name = "#g"; else name = "g'";
+            if (front) name = "#g"; else name = "g\"";
         } else if (noteOffset == 9) {
             name = "a";
         } else if (noteOffset == 10) {
-            if (front) name = "#a"; else name = "a'";
+            if (front) name = "#a"; else name = "a\"";
         } else {
 //            noteOffset = 11;
             name = "b";
@@ -404,5 +409,43 @@ public class Utils {
         }
 
         return sb.toString().trim();
+    }
+
+
+    public static void a() {
+        ArrayList<NoteMessage> noteMessages = new ArrayList<>();
+        List<? extends NoteMessage> element = getSameHeadElement(noteMessages, HasMidiTicks::getMarkTicks);
+
+    }
+
+    public static Stream<? extends HasMidiTicks> sortedByMarkTicksStream(List<? extends HasMidiTicks> provide) {
+        return provide.stream()
+                .sorted(Comparator.comparingLong(HasMidiTicks::getMarkTicks));
+    }
+
+    public static Stream<? extends HasNoteCode> sortedByCodeStream(List<? extends HasNoteCode> provide) {
+        return provide.stream()
+                .sorted(Comparator.comparingLong(HasNoteCode::getCode));
+    }
+
+    public  static <T> List<? extends T> getSameHeadElement(List<? extends T> list, Function<T, Object> getValue) {
+        ArrayList<T> retElement = new ArrayList<>();
+//        long value = list.get(0).getMarkTicks();
+        Object value = getValue.apply(list.get(0)); //list.get(0).getMarkTicks();
+        for(var i : list) {
+            if (getValue.apply(i).equals(value)) {
+                retElement.add(i);
+            } else break;
+        }
+        return retElement;
+    }
+
+    public static <R> R apply(R ref, Consumer<R> action) {
+        action.accept(ref);
+        return ref;
+    }
+
+    public static <T, R> R let(T ref, Function<T, R> action) {
+        return action.apply(ref);
     }
 }

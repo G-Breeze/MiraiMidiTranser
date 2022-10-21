@@ -2,7 +2,7 @@ package org.miditranser.data;
 
 import org.miditranser.data.midi.message.NoteMessage;
 
-public class NotePiece extends HasNoteCode implements MidiHexData {
+public class NotePiece extends HasNoteCode implements MidiHexData, FromMidiEvent {
     int type;
     int velocity;
     byte channel;
@@ -62,5 +62,21 @@ public class NotePiece extends HasNoteCode implements MidiHexData {
     @Override
     public boolean stackTypeIsPush() {
         return isNoteOn();
+    }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        var builder = new StringBuilder().append("{");
+        if (isNoteOn())
+            builder.append("on");
+        else if (isNoteOff())
+            builder.append("off");
+        builder.append(getNoteName());
+        if (isNoteOff())
+//                    builder.append(calculateDuration(((NotePiece) item).getLastingTick(), division, accuracy).asMiderDurationSymbols());
+//                    builder.append(((NotePiece) item).getLastingTick());
+            builder.append(",0");
+        builder.append("}");
+        return builder.toString();
     }
 }

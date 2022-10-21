@@ -4,7 +4,9 @@ import org.miditranser.Utils;
 import org.miditranser.data.midi.message.NoteOffMessage;
 import org.miditranser.data.midi.message.NoteOnMessage;
 
-public class Note extends HasNoteCode {
+import static org.miditranser.Utils.calculateDuration;
+
+public class Note extends HasNoteCode implements FromMidiEvent {
     int onChannel;
     int offChannel;
     long onTicks;
@@ -42,7 +44,12 @@ public class Note extends HasNoteCode {
 
     @Override
     public String toString() {
-        return "note: " + getNoteName() + ", ticks: " + getTicks() + ", startAt: " + onTicks + ", endAt: " + offTicks ;
+        return "<note: " + getNoteName() + ", ticks: " + getTicks() + ", startAt: " + onTicks + ", endAt: " + offTicks + ">";
+    }
+
+    @Override
+    public String generateMiderCode(CalculateDurationConfiguration cdc) {
+        return getNoteName() + calculateDuration(getTicks(), cdc.division, cdc.accuracy).asMiderDurationSymbols();
     }
 
     //    public Note(String name, long ticks, int onVelocity, int offVelocity, int channel) {

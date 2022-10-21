@@ -1,53 +1,47 @@
 package org.miditranser;
 
-import kotlin.Triple;
 import org.miditranser.data.*;
-import org.miditranser.data.midi.message.HasMidiTicks;
 import org.miditranser.data.midi.message.NoteMessage;
-import org.miditranser.handle.MessageHandler;
+import org.miditranser.data.midi.message.ProgramChangeMessage;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Currency;
+import java.util.List;
+import java.util.Stack;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static org.miditranser.Utils.calculateDuration;
-import static org.miditranser.Utils.transferNoteName;
+import static org.miditranser.MiderTrackOptimizer.withRestOrGap;
 
 public class MiderTrackWriter {
 
-    private final int division;
+    private final CalculateDurationConfiguration cdc;
+
     public static final int defaultBpm = 80;
-
-    public boolean isAddRestOrGap() {
-        return addRestOrGap;
-    }
-
-    public void setAddRestOrGap(boolean addRestOrGap) {
-        this.addRestOrGap = addRestOrGap;
-    }
-
-    private boolean addRestOrGap = true;
-
-    MiderTrackWriter(int division) {
-        this.division = division;
-    }
-
-    int bpm;
-
-    /**
-     * first: code
-     * second: duration
-     * third: channel
-     */
-    private final List<Triple<Byte, DurationTag, Byte>> noteList = new ArrayList<>();
-
+    private boolean addRestAndGap = true;
+    static int bpm;
     private final List<Addable> items = new ArrayList<>();
 
-    public void setBpm(int bpm) {
-        this.bpm = bpm;
+    MiderTrackWriter(CalculateDurationConfiguration cdc) {
+        this.cdc = cdc;
     }
 
-    public void addCombinedNote(NoteMessage on, NoteMessage off) {
+    public boolean isAddRestAndGap() {
+        return addRestAndGap;
+    }
+
+    public void setAddRestAndGap(boolean addRestAndGap) {
+        this.addRestAndGap = addRestAndGap;
+    }
+
+    public List<Addable> getItems() {
+        return items;
+    }
+
+    public void setBpm(int bpm) {
+        MiderTrackWriter.bpm = bpm;
+    }
+
+    private void addStanderNote(NoteMessage on, NoteMessage off) {
 
         CheckEventResult result = checkNote(on, off);
         if (!result.isNoteClosed())
@@ -113,30 +107,13 @@ public class MiderTrackWriter {
         return result;
     }
 
-    public void addCombinedChord(List<NoteMessage> ons, List<NoteMessage> offs) {
-
-        CheckEventResult result = checkChord(ons, offs);
-
-//        if (!result.isChordSizeSameFlag())
-//            throw new RuntimeException();
-//        if (!result.isChordAllOnFlag()|| !result.isChordAllOffFlag())
-//            throw new RuntimeException();
-
-//        var entries = IntStream.range(0, ons.size())
-//                .mapToObj(i -> Map.entry(ons.get(i).asOn(), offs.get(i).asOff()))
-//                .collect(Collectors.toList()); // todo useful
-
-//        boolean isStanderChord = result.isChordStartTicksSameFlag() && result.isChordEndTicksSameFlag();
-
-        if (isStanderChord(result)) {
-            // stander chord
-            StanderChord chord = new StanderChord(
-                    ons.stream().map(NoteMessage::asOn).collect(Collectors.toList()),
-                    offs.stream().map(NoteMessage::asOff).collect(Collectors.toList()));
-            items.add(chord);
-
-        } else {
-            /// System.out.println("none stander");
+    public void addSound(List<NoteMessage> messages) {
+        if (messages.size() == 2) {
+            // might note
+            addStanderNote(messages.get(0), messages.get(1));
+        } else if (messages.size() >= 4) {
+            // might chord
+            addChord(messages);
         }
     }
 
@@ -153,305 +130,47 @@ public class MiderTrackWriter {
         if (messages.size() < 4)
             throw new RuntimeException("size not same!");
 
-        if (isStanderChord(result)) {
-//            System.out.println("stander chord");
-            items.add(new StanderChord(
-                    onMessages.stream()
-                            .map(NoteMessage::asOn)
-                            .collect(Collectors.toList()),
-                    offMessages.stream()
-                            .map(NoteMessage::asOff)
-                            .collect(Collectors.toList()))
-            );
-        } else if (isArpeggio(result)) {
-//            System.out.println("Arpeggio chord");
-        } // else if (result.isChordStartTicksSameFlag()) {
-            // start ticks are same
-            // var f = (List<NoteMessage>) sortedByMarkTicks(messages);
-
-        // } else if (result.isChordEndTicksSameFlag()) {
-            // end ticks are same
-        /*}*/ else {
-//            System.out.print("inner chord: " + messages);
-//            System.out.println();
-//
-//            var collect = messages.stream()
-//                    .sorted(Comparator.comparingLong(HasMidiTicks::getMarkTicks))
-//                    .map(NoteMessage::asStackString);
-//
-////            long count = collect.count();
-//            List<String> list = collect.collect(Collectors.toList());
-            var sortedMessages = sortedByMarkTicks(messages)
-                    .map(i -> (NoteMessage) i )
-                    .collect(Collectors.toList());
-
-//            System.out.println(sortedMessages);
-
-            var part1 = sortedMessages.subList(0, sortedMessages.size() / 2);
-            var part2 = sortedMessages.subList(sortedMessages.size() / 2, sortedMessages.size());
-
-            var eqp1 = getSameHeadElement(part1);
-            var copyPart2 = new ArrayList<>(part2);
-            Collections.reverse(copyPart2);
-            var eqp2 = getSameHeadElement(copyPart2);
-
-            NoteMessage headMessage = null;
-            NoteMessage tailMessage = null;
-
-//            System.out.println("p1: " + eqp1);
-//            System.out.println("p2: " + eqp2);
-
-            for (var head : eqp1) {
-                for (var tail : eqp2) {
-                    if (head.codeEquals(tail)) {
-                        headMessage = head;
-                        tailMessage = tail;
-                         System.out.println("      :head>" + head + ", tail>" + tail);
-                    } else break;
-                }
-            }
-
-//            assert headMessage != null;
-
-            if (headMessage != null) {
-                // Warp chord
-                sortedMessages.remove(headMessage);
-                sortedMessages.remove(tailMessage);
-
-                var headNp = new NotePiece(headMessage);
-                var tailNp = new NotePiece(tailMessage);
-
-                tailNp.setLastingTick(tailNp.getTailTicks() - sortedMessages.get(sortedMessages.size() - 1).getMarkTicks());
-
-                items.add(headNp);
-
-                EventStateMachine handel = new EventStateMachine(division);
-                for (NoteMessage message : sortedMessages) {
-                    MessageHandler mh = new MessageHandler(message);
-                    handel.stackHandleMessage(mh);
-                    mh.handle();
-                }
-
-                handel.gen();
-                items.addAll(handel.getMiderTrackWriter().getOriginalList());
-
-                items.add(tailNp);
-
-            } else {
-                // change directly to note piece
-                var last = sortedMessages.get(0).getMarkTicks();
-                for (var msg : sortedMessages) {
-                    NotePiece piece = new NotePiece(msg);
-                    if (piece.isNoteOff()) {
-                        piece.setLastingTick(msg.getMarkTicks() - last);
-                    }
-                    last = msg.getMarkTicks();
-                }
-            }
-
-
-
-//            System.out.println("now: " + sortedMessages);
-//            System.out.println();
-
-            // System.out.println("inner>>>>" + collect.collect(Collectors.joining(" ")));
-
-//            System.out.println(onMessages.size());
-//            System.out.println(offMessages.size());
-
-
-//            var sorted = messages.stream()
-//                    .sorted(Comparator.comparingLong(HasMidiTicks::getMarkTicks))
-//                    .collect(Collectors.toList());
-////            System.out.println(sorted);
-//
-//            var cutMessages = new ArrayList<>(sorted);
-//            var head = cutMessages.remove(0);
-//            var tail = cutMessages.remove(cutMessages.size() - 1);
-//            NotePiece onPiece = new NotePiece(head);
-//            NotePiece offPiece = new NotePiece(tail);
-//            offPiece.setLastingTick(tail.getMarkTicks() - head.getMarkTicks());
-//
-//            items.add(onPiece);
-//
-//            EventStateMachine handel = new EventStateMachine(division);
-//            for (NoteMessage message : sortedMessages) {
-////            for (NoteMessage message : cutMessages) {
-//                MessageHandler mh = new MessageHandler(message);
-//                handel.stackHandleMessage(mh);
-//                mh.handle();
-//            }
-//
-//            handel.gen();
-//            items.addAll(handel.getMiderTrackWriter().getOriginalList());
-//
-//            items.add(offPiece);
-        }
-
-//        Chord chord = new Chord(ons.stream().map(NoteMessage::asOn).collect(Collectors.toList()),
-//                offs.stream().map(NoteMessage::asOff).collect(Collectors.toList()));
-//        items.add(chord);
-    }
-
-    public static List<NoteMessage> getSameHeadElement(List<? extends NoteMessage> list) {
-        ArrayList<NoteMessage> retElement = new ArrayList<>();
-        long ticks = list.get(0).getMarkTicks();
-        for(var i : list) {
-            if (i.getMarkTicks() == ticks) {
-                retElement.add(i);
-            } else break;
-        }
-        return retElement;
-    }
-
-    public static Stream<? extends HasMidiTicks> sortedByMarkTicks(List<? extends HasMidiTicks> provide) {
-        return provide.stream()
-                .sorted(Comparator.comparingLong(HasMidiTicks::getMarkTicks));
-    }
-
-    private Collection<? extends Addable> getOriginalList() {
-        return items;
+        if (isStanderChord(result))
+            items.add(new StanderChord(messages));
+        else if (isArpeggio(result)) {
+            items.add(new CommonChord(messages));
+        } else items.add(new CommonChord(messages));
     }
 
     private boolean isArpeggio(CheckEventResult result) {
         return false;
     }
 
-//    public void op() {
-//        var vm = MiderTrackOptimizer.getCommonOctave(items);
-//        System.out.println("common octave: " + vm);
-//    }
-
-    public List<Addable> removeRestAndGapInsideNotePiece(List<Addable> items) {
-
-        var list = new ArrayList<>(items);
-        var stack = new Stack<MidiHexData>();
-
-        for (var e : list) {
-            if (e instanceof MidiHexData) {
-                if (((MidiHexData) e).stackTypeIsPush()) {
-                    stack.push(((MidiHexData) e));
-                } else {
-                    stack.pop();
-                }
-            }
-
-            if (!stack.isEmpty()) {
-                if (e instanceof Rest || e instanceof Gap) {
-                    items.remove(e);
-                } else {
-                    System.out.println(":::::::::::::::::" + e);
-                }
-            }
-
-        }
-
-        return list;
-    }
-
-    public List<Addable> withRestOrGap(List<Addable> items) {
-
-//        System.out.println("wro" + items);
-
-        FromMidiEvent previous = null;
-        long previousGap = 0;
-        Stack<Gap> gapStack = new Stack<>();
-        var retList = new ArrayList<Addable>();
-        // options
-        var useGap = !true;
-        var onlyClearOnce = true;
-        var gapUseDurationSymbolsForm = false;
-        var autoClose = false;
-
-
-        for (Addable item : items) {
-
-            var current = (FromMidiEvent) item;
-
-            if (previous != null) {
-                // case index >= 1
-                var gap = current.getHeadTicks() - previous.getTailTicks();
-                if (gap != 0) {
-                    // contains gap that need to be fulfilled with rest or gap pair
-                    var rest = new Rest(previous.getTailTicks(), current.getHeadTicks());
-                    if (useGap && rest.shouldUseGap(division)) {
-
-                        if (gap != previousGap) {
-                            // gap value changed
-                            var gapPair = rest.toGapPair(gapUseDurationSymbolsForm);
-                            gapStack.push(gapPair.getValue());
-                            retList.add(gapPair.getKey());
-                        }
-                    } else {
-                        if (autoClose) while (!gapStack.isEmpty()) {
-                            retList.add(gapStack.pop());
-                            if (onlyClearOnce) gapStack.clear();
-                        }
-                        retList.add(rest);
-                    }
-                } else {
-                    // clear gap
-                    if (autoClose) while (useGap && !gapStack.isEmpty()) {
-                        retList.add(gapStack.pop());
-                        if (onlyClearOnce) gapStack.clear();
-                    }
-                }
-                previousGap = gap;
-            } else if (current.getHeadTicks() != 0) {
-                // case index = 0
-                var rest = new Rest(0, current.getHeadTicks());
-                retList.add(rest);
-            }
-
-            previous = current;
-            retList.add(item);
-        }
-
-        if (autoClose && !gapStack.isEmpty()) retList.add(Gap.ClearGap());
-        return retList;
-    }
-
     public List<Addable> getOptimizedList() {
-//        var nl = ;
-         return withRestOrGap(items);//removeRestAndGapInsideNotePiece();
-//        return nl;
+        if (isAddRestAndGap())
+            return withRestOrGap(items, cdc);
+        else return items;
     }
 
-    public void addRest() {
-        FromMidiEvent previous = null;
-        for (int i = 0; i < items.size(); i++) {
-            var current = (FromMidiEvent) items.get(i);
-            if (previous != null) {
-                var gap = current.getHeadTicks() - previous.getTailTicks();
-                if (gap != 0) {
+    public String generateTrackMiderCode() {
+        StringBuilder builder = new StringBuilder();
 
-                    var symbols = calculateDuration(gap, division).asMiderDurationSymbols();
-                    if (symbols.length() > 4) {
-
-                    } else {
-//                        Rest
-                        System.out.println("add rest o"+symbols);
-                    }
-                    System.out.println("gap: " + gap + ", index: " + i);
+        for (var item : getOptimizedList()) {
+            String code = item.generateMiderCode(cdc);
+            if (item instanceof Meta) {
+                if (((Meta) item).isChangBpm()) {
+                    setBpm(Meta.bytesToBpm(((Meta) item).getData()));
                 }
             }
-            previous = current;
+            builder.append(code).append(" ");
         }
+
+        return builder.toString();
     }
 
-    public String getTrackCode() {
+/*    public String getTrackCode() {
         StringBuilder builder = new StringBuilder();
 
         // todo remove to FromMidiEvents
 
         var accuracy = 0.1;
 
-        if (bpm == defaultBpm || bpm == 0)
-            builder.append(">g>");
-        else builder.append(">").append(bpm).append("b>");
-
         var list = getOptimizedList();
-//        removeRestAndGapInsideNotePiece(items);
 
         for (var item : list) {
             if (item instanceof Note) {
@@ -484,11 +203,42 @@ public class MiderTrackWriter {
 //                    builder.append(((NotePiece) item).getLastingTick());
                     builder.append(",0");
                 builder.append("}");
+            } else if (item instanceof CommonChord) {
+
+                builder.append("<");
+                builder.append(((CommonChord) item).parseMessages(division));
+                builder.append(">");
+//                System.out.println("code > " + ((CommonChord) item).parse2(division));
+//                ((CommonChord) item).parse();
+            } else if (item instanceof AbstractChord) {
+                builder.append(((AbstractChord) item).getOnCodes());
+                builder.append("%");
+                builder.append(((AbstractChord) item).getOnsTicks());
+                builder.append(" & ");
+                builder.append(((AbstractChord) item).getOffCodes());
+                builder.append("%");
+                builder.append(((AbstractChord) item).getOffsTicks());
+            } else {
+                System.out.println("not in");
             }
             builder.append(" ");
         }
 
         return builder.toString().trim();
+    }*/
+
+    public String generateTrackCodeWithConfig() {
+
+        StringBuilder builder = new StringBuilder();
+        String code = generateTrackMiderCode();
+        if (code.isBlank()) return "";
+
+        if (bpm == defaultBpm || bpm == 0) {
+            builder.append(">g>");
+        }
+        else builder.append(">").append(bpm).append("b>");
+
+        return builder.append(code).toString();
     }
 
     @Override
@@ -496,7 +246,7 @@ public class MiderTrackWriter {
         return super.toString();
     }
 
-    public void addSingleNote(long time, byte code, byte channel) {
-        noteList.add(new Triple<>(code, calculateDuration(time, division), channel));
+    public void addNoneSound(Addable addable) {
+        items.add(addable);
     }
 }

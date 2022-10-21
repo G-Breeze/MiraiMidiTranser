@@ -16,7 +16,7 @@ repositories {
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
-    api("com.github.whiterasbk:mider:beta0.9.14")
+    testImplementation("com.github.whiterasbk:mider:beta0.9.14")
 }
 
 tasks.getByName<Test>("test") {

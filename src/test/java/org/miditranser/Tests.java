@@ -2,16 +2,13 @@ package org.miditranser;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.miditranser.data.*;
-
+import org.miditranser.data.Addable;
+import org.miditranser.data.FromMidiEvent;
+import org.miditranser.data.Gap;
+import org.miditranser.data.Rest;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static org.miditranser.Utils.*;
 import static whiter.music.mider.UtilsKt.*;

@@ -1,7 +1,8 @@
 package org.miditranser.handle;
 
 import org.miditranser.data.midi.message.*;
-import org.miditranser.handle.AbstractHandler;
+
+import java.util.Date;
 
 import static org.miditranser.Utils.rest;
 import static org.miditranser.Utils.toHex;
@@ -24,9 +25,10 @@ public class StatusHandler extends AbstractHandler {
     public void handle() {
         if (midiStatus == 0xff) {
             // assume hexData use 1 byte to store length
-            var type = hexData[0];
-            var length = hexData[1];
-            var content = rest(hexData, 2);
+
+            var type = hexData[1];
+            var length = hexData[2];
+            var content = rest(hexData, 3);
             if (meta != null) {
                 meta.accept(new MetaMessage(type, length, content, deltaTime, markedTicks));
             }
@@ -41,7 +43,7 @@ public class StatusHandler extends AbstractHandler {
                 glissando.accept(new GlissandoMessage(deltaTime, hexData[0], hexData[1], (byte) (midiStatus & 0xf), markedTicks));
         } else if (0xc0 <= midiStatus && midiStatus <= 0xcf) {
             if (programChange != null)
-                programChange.accept(new ProgramChangeMessage(hexData[0], (byte) (midiStatus & 0xf), deltaTime, markedTicks));
+                programChange.accept(new ProgramChangeMessage(hexData[1], (byte) (midiStatus & 0xf), deltaTime, markedTicks));
         } else if (0xf0 == midiStatus) {
             // assume hexData use 1 byte to store length
             var length = hexData[0];
@@ -53,56 +55,11 @@ public class StatusHandler extends AbstractHandler {
                 afterTouch.accept(new AfterTouchMessage(hexData[1], hexData[2], (byte) (midiStatus & 0xf), deltaTime, markedTicks));
         } else if (0xb0 <= midiStatus && midiStatus <= 0xbf) {
             if (controller != null)
-                controller.accept(new ControllerMessage(hexData[0], hexData[1], deltaTime, markedTicks));
+                controller.accept(new ControllerMessage(hexData[1], (byte) (midiStatus & 0xf), hexData[2], deltaTime, markedTicks));
         } else if (0xd0 <= midiStatus && midiStatus <= 0xdf) {
             if (afterTouchChannel != null)
                 afterTouchChannel.accept(new AfterTouchChannelMessage(deltaTime, markedTicks, (byte) (midiStatus & 0xf)));
         } else throw new RuntimeException("no such handler, status: " + toHex(new byte[]{ (byte) midiStatus }));
     }
-//
-//    public StatusHandler handleNoteOff(Consumer<NoteOffMessage> noteOff) {
-//        this.noteOff = noteOff;
-//        return this;
-//    }
-//
-//    public StatusHandler handleAfterTouch(Consumer<AfterTouchMessage> afterTouch) {
-//        this.afterTouch = afterTouch;
-//        return this;
-//    }
-//
-//    public StatusHandler handleController(Consumer<ControllerMessage> controller) {
-//        this.controller = controller;
-//        return this;
-//    }
-//
-//    public StatusHandler handleProgramChange(Consumer<ProgramChangeMessage> programChange) {
-//        this.programChange = programChange;
-//        return this;
-//    }
-//
-//    public StatusHandler handleAfterTouchChannel(Consumer<AfterTouchChannelMessage> afterTouchChannel) {
-//        this.afterTouchChannel = afterTouchChannel;
-//        return this;
-//    }
-//
-//    public StatusHandler handleGlissando(Consumer<GlissandoMessage> glissando) {
-//        this.glissando = glissando;
-//        return this;
-//    }
-//
-//    public StatusHandler handleNoteOn(Consumer<NoteOnMessage> noteOn) {
-//        this.noteOn = noteOn;
-//        return this;
-//    }
-//
-//    public StatusHandler handleSystemCode(Consumer<SystemCodeMessage> systemCode) {
-//        this.systemCode = systemCode;
-//        return this;
-//    }
-//
-//    public StatusHandler handleMeta(Consumer<MetaMessage> meta) {
-//        this.meta = meta;
-//        return this;
-//    }
 }
 
